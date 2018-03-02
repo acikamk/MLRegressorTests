@@ -49,14 +49,14 @@ Index([u'restaurant_id', u'restaurant_name', u'testing',
        u'ingredients'],
       dtype='object')
 '''
-test_df = data[['restaurant_id','menu_category','product_name', 'price']].copy()
+test_df = data[['restaurant_name','menu_category','product_name', 'price']].copy()
 test_df.dropna(subset=['menu_category','product_name'], inplace=True)
 test_df.reset_index(inplace=True)
 print test_df.isnull().sum()
 
 
 
-print 'Unique restaurants: {}'.format(len(data['restaurant_id'].unique()))
+print 'Unique restaurants: {}'.format(len(data['restaurant_name'].unique()))
 print 'Unique menu_category: {}'.format(len(data['menu_category'].unique()))
 print 'Unique product_name: {}'.format(len(data['product_name'].unique()))
 print 'Unique ingredients: {}'.format(len(data['ingredients'].unique()))
@@ -74,6 +74,12 @@ encode_name.replace({r'[^a-zA-Z0-9\s,]':''}, regex=True, inplace=True)
 print len(encode_name.unique())
 encode_name = encode_name.apply(lambda x:GermanStemmer().stem(x))
 print len(encode_name.unique())
+
+encode_rname = test_df['restaurant_name'].str.encode('ascii', errors='ignore')
+encode_rname.replace({r'[^a-zA-Z0-9\s,]':''}, regex=True, inplace=True)
+print len(encode_rname.unique())
+encode_rname = encode_rname.apply(lambda x:GermanStemmer().stem(x))
+print len(encode_rname.unique())
 
 
 # X = pd.concat([encode_menu, encode_name, test_df['restaurant_id'].astype('str')], axis=1)
@@ -102,6 +108,9 @@ tfidf_vectorizer = TfidfVectorizer(max_df=18000, min_df=20)
 t_name = tfidf_vectorizer.fit_transform(encode_menu)
 tfidf_vectorizer = TfidfVectorizer(max_df=2000, min_df=20)
 t_menu = tfidf_vectorizer.fit_transform(encode_menu)
+
+tfidf_vectorizer = TfidfVectorizer()
+t_rname = tfidf_vectorizer.fit_transform(encode_rname)
 # X = t_name
 # y = test_df[['price']].values
 
@@ -111,7 +120,10 @@ f.open('Scores_wrang2.txt', 'w')
  # new_features_name=pd.DataFrame(t_name.toarray())
 # new_features_menu=pd.DataFrame(t_menu.toarray())
 
-X =	pd.concat((pd.DataFrame(t_name.toarray()), pd.DataFrame(t_menu.toarray()), test_df['restaurant_id']), axis=1)
+X =	pd.concat((pd.DataFrame(t_rname.toarray()), pd.DataFrame(t_name.toarray()), pd.DataFrame(t_menu.toarray()), test_df['restaurant_id']), axis=1)
+from sklearn.preprocessing import MinMaxScaler
+scale = MinMaxScaler()
+X_norm = scale.fit_transform(X)
 
 y = test_df['price'].values
 

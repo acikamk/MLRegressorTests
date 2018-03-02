@@ -184,4 +184,8 @@ dummy.fit(X_train, y_train)
 R_dummy=dummy.score(X_train, y_train) 
 y_pred_dummy = dummy.predict(X_test)
 
-pdb.set_trace()
+pdb.set_trace
+
+
+    
+# 0.30739754003141806
