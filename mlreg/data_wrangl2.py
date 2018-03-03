@@ -117,7 +117,7 @@ t_rname = tfidf_vectorizer.fit_transform(encode_rname)
 
 f.open('Scores_wrang2.txt', 'w')
 
- # new_features_name=pd.DataFrame(t_name.toarray())
+# new_features_name=pd.DataFrame(t_name.toarray())
 # new_features_menu=pd.DataFrame(t_menu.toarray())
 
 X =	pd.concat((pd.DataFrame(t_rname.toarray()), pd.DataFrame(t_name.toarray()), pd.DataFrame(t_menu.toarray()), test_df['restaurant_id']), axis=1)
@@ -167,7 +167,7 @@ try:
 except:
 	print "except"
 
-rf=GridSearchCV(RandomForestRegressor(n_estimators=100)	, cv=3, param_grid=	{'max_depth':[4,6,10]})
+rf=GridSearchCV(RandomForestRegressor()	, cv=3, param_grid=	{'n_estimators':[100,150],'max_depth':[4,6,10]})
 
 
 rf.fit(X_train, y_train)

@@ -28,6 +28,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.manifold import TSNE
 from sklearn.kernel_ridge import KernelRidge
+from scipy.sparse import hstack
 
 
 data = pd.read_csv('~/Downloads/ml-price-prediction-dataset.csv', sep=';', low_memory=False, encoding='latin')
@@ -119,33 +120,38 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, r
 # print("Accuracy: %.2f%%" % (accuracy * 100.0))
  
 # split train teast before text manupulation
-word_vectorizer = CountVectorizer(ngram_range=(1,1),analyzer='char',strip_accents='ascii', token_pattern='\w|,|\s|')
+# word_vectorizer = CountVectorizer(ngram_range=(1,1),analyzer='char',strip_accents='ascii', token_pattern='\w|,|\s|')
+word_vectorizer = CountVectorizer(ngram_range=(1,2),analyzer='char',strip_accents='ascii', token_pattern='\w|,|\s|')
 # smm = word_vectorizer.fit_transform(encode_name)
 # smn= word_vectorizer.fit_transform(encode_menu)
 # smr= word_vectorizer.fit_transform(encode_rname)
 # pdb.set_trace()
-smrt = word_vectorizer.fit_transform(X_train['restaurant_name'])
-smmt= word_vectorizer.fit_transform(X_train['menu_category'])
-smpt= word_vectorizer.fit_transform(X_train['product_name'])
-rdf=pd.DataFrame(smrt.toarray()) 
+smr = word_vectorizer.fit_transform(X_train['restaurant_name'])
+smm= word_vectorizer.fit_transform(X_train['menu_category'])
+smp= word_vectorizer.fit_transform(X_train['product_name'])
+pdb.set_trace()
+rdf=pd.DataFrame(smr.toarray()) 
 rdf.columns= ['r_'+str(el) for el in rdf.columns]
-mdf=pd.DataFrame(smmt.toarray()) 
+mdf=pd.DataFrame(smm.toarray()) 
 mdf.columns= ['m_'+str(el) for el in mdf.columns]
-pdf=pd.DataFrame(smpt.toarray()) 
+pdf=pd.DataFrame(smp.toarray()) 
 pdf.columns= ['p_'+str(el) for el in pdf.columns]
 
 city_id = pd.get_dummies(X_train['city_id'])
 city_id.columns = ['city_id_'+str(el) for el in city_id.columns]
 city_id.reset_index(inplace=True)
 city_id.drop(labels=['index'], axis=1,inplace=True)
-postcode =pd.get_dummies(X_train['postcode'])
+cid_csc = city_id.values.tocsr()
 
+postcode =pd.get_dummies(X_train['postcode'])
 postcode.columns = ['post_'+str(el) for el in postcode.columns]
 postcode.reset_index(inplace=True)
 postcode.drop(labels=['index'], axis=1, inplace=True)
+p_scs = postcode.values.tocsr()
 
 pdb.set_trace()
-X_train=pd.concat((rdf,mdf,pdf,city_id,postcode), axis=1) 
+# X_train=pd.concat((rdf,mdf,pdf,city_id,postcode), axis=1) 
+X_train=hstack([	rdf,mdf,pdf,cid_csc,p_scs])
 
 
 # X_train=pd.concat((pd.DataFrame(smr.toarray()), pd.DataFrame(smm.toarray()), pd.DataFrame(smn.toarray()), X_train['city_id'], X_train['postcode']), axis=1) 
@@ -190,7 +196,6 @@ X_normt = scale.fit_transform(X_test)
 print X_normt.shape
 
 
-# http://scikit-learn.org/stable/auto_examples/text/document_classification_20newsgroups.html#sphx-glr-auto-examples-text-document-classification-20newsgroups-py
 # model = XGBRegressor()
 # model.fit(X_train, y_train)
 xgb_cv = GridSearchCV(XGBRegressor(), cv=3, param_grid={'max_depth':[3,10], 'learning_rate':[0.1, 1], 'n_estimators':[50,100,150]})
@@ -263,3 +268,73 @@ print xgb_test_score
 #         0.99182389,  0.99514325])
 
 
+# RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=10,
+#            max_features='auto', max_leaf_nodes=None,
+#            min_impurity_decrease=0.0, min_impurity_split=None,
+#            min_samples_leaf=1, min_samples_split=2,
+#            min_weight_fraction_leaf=0.0, n_estimators=100, n_jobs=1,
+#            oob_score=False, random_state=None, verbose=0, warm_start=False)
+
+
+# (Pdb) rf.cv_results_['split1_train_score']
+# array([ 0.31504952,  0.45117987,  0.67897048])
+# (Pdb) rf.cv_results_['split1_test_score']
+# array([ 0.17369633,  0.24552573,  0.31034079])
+# (Pdb) rf.cv_results_['split0_test_score']
+# array([ 0.20841938,  0.23836207,  0.27071412])
+# (Pdb) rf.cv_results_['split0_train_score']
+# array([ 0.30856587,  0.47459398,  0.6767325 ])
+
+# (Pdb) from sklearn.preprocessing import MinMaxScaler
+# (Pdb) scale = MinMaxScaler()
+# (Pdb) X_norm = scale.fit_transform(X_train)
+# (Pdb) rf=GridSearchCV(RandomForestRegressor(), cv=3, param_grid={'n_estimators':[100,150],'max_depth':[4,6,10]})
+# (Pdb) rf.fit(X_norm, y_train) 
+# GridSearchCV(cv=3, error_score='raise',
+#        estimator=RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=None,
+#            max_features='auto', max_leaf_nodes=None,
+#            min_impurity_decrease=0.0, min_impurity_split=None,
+#            min_samples_leaf=1, min_samples_split=2,
+#            min_weight_fraction_leaf=0.0, n_estimators=10, n_jobs=1,
+#            oob_score=False, random_state=None, verbose=0, warm_start=False),
+#        fit_params=None, iid=True, n_jobs=1,
+#        param_grid={'n_estimators': [100, 150], 'max_depth': [4, 6, 10]},
+#        pre_dispatch='2*n_jobs', refit=True, return_train_score=True,
+#        scoring=None, verbose=0)
+# (Pdb) rf.score(X_norm, y_train)
+# 0.63648816563703936
+# (Pdb) rf.score(X_rest, y_test)
+# *** NameError: name 'X_rest' is not defined
+# (Pdb) rf.score(X_test, y_test)
+# *** ValueError: could not convert string to float: 
+# (Pdb) rf.best_estimator
+# *** AttributeError: 'GridSearchCV' object has no attribute 'best_estimator'
+# (Pdb) rf.best_estimator_
+# RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=10,
+#            max_features='auto', max_leaf_nodes=None,
+#            min_impurity_decrease=0.0, min_impurity_split=None,
+#            min_samples_leaf=1, min_samples_split=2,
+#            min_weight_fraction_leaf=0.0, n_estimators=100, n_jobs=1,
+#            oob_score=False, random_state=None, verbose=0, warm_start=False)
+# (Pdb) rf.cv_results_
+# {'std_train_score': array([ 0.04376343,  0.04616774,  0.02833745,  0.0227273 ,  0.01377272,
+#         0.01024641]), 'rank_test_score': array([5, 6, 4, 3, 1, 2], dtype=int32), 'param_max_depth': masked_array(data = [4 4 6 6 10 10],
+#              mask = [False False False False False False],
+#        fill_value = ?)
+# , 'split1_train_score': array([ 0.35605474,  0.3518186 ,  0.5057006 ,  0.51974606,  0.62651116,
+#         0.6340184 ]), 'split2_train_score': array([ 0.41374335,  0.41586705,  0.51818522,  0.52014248,  0.64993207,
+#         0.65225832]), 'std_score_time': array([ 0.01332746,  0.02144588,  0.04170102,  0.04115009,  0.01485711,
+#         0.05242565]), 'split2_test_score': array([ 0.30581357,  0.31776694,  0.37004168,  0.36718886,  0.43910952,
+#         0.44849732]), 'mean_score_time': array([ 0.46236205,  0.62592228,  0.63310099,  0.93072454,  1.08910473,
+#         1.6276234 ]), 'mean_fit_time': array([ 185.52156798,  242.76824832,  197.79265364,  301.24429401,
+#         325.27815127,  485.88149953]), 'split0_train_score': array([ 0.46314602,  0.46455785,  0.57107539,  0.56815493,  0.65924996,
+#         0.65806917]), 'std_test_score': array([ 0.06292765,  0.05601493,  0.06196299,  0.06208554,  0.06326572,
+#         0.07232768]), 'mean_train_score': array([ 0.41098137,  0.41074783,  0.53165374,  0.53601449,  0.64523107,
+#         0.6481153 ]), 'split0_test_score': array([ 0.18988982,  0.19022642,  0.2531768 ,  0.25589716,  0.3333159 ,
+#         0.31725211]), 'mean_test_score': array([ 0.2771789 ,  0.26860105,  0.33956616,  0.34146213,  0.41890193,
+#         0.41722882]), 'params': [{'n_estimators': 100, 'max_depth': 4}, {'n_estimators': 150, 'max_depth': 4}, {'n_estimators': 100, 'max_depth': 6}, {'n_estimators': 150, 'max_depth': 6}, {'n_estimators': 100, 'max_depth': 10}, {'n_estimators': 150, 'max_depth': 10}], 'std_fit_time': array([ 12.32584503,  16.64777944,  13.94742488,  17.26114665,
+#          2.74066178,  21.78782425]), 'param_n_estimators': masked_array(data = [100 150 100 150 100 150],
+#              mask = [False False False False False False],
+#        fill_value = ?)
+# , 'split1_test_score': array([ 0.33583332,  0.29780978,  0.39548   ,  0.40130037,  0.48428037,
+#         0.48593704])}
